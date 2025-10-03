@@ -5,6 +5,7 @@ import { initCommand } from './commands/init.js';
 import { chatCommand } from './commands/chat.js';
 import { refreshCommand } from './commands/refresh.js';
 import { doctorCommand } from './commands/doctor.js';
+import { configCommand } from './commands/config.js';
 
 const program = new Command();
 
@@ -36,6 +37,15 @@ program
   .command('doctor')
   .description('Check system health and configuration')
   .action(doctorCommand);
+
+program
+  .command('config')
+  .description('Manage YouAgent configuration')
+  .option('-l, --list', 'List all available configuration keys')
+  .option('-e, --edit', 'Edit configuration in external editor')
+  .option('-g, --get <key>', 'Get configuration value for key')
+  .option('-s, --set <key> <value>', 'Set configuration value')
+  .action(configCommand);
 
 program.parse();
 

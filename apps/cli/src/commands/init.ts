@@ -123,7 +123,9 @@ export async function initCommand(): Promise<void> {
     // GitHub
     if (answers.githubUsername) {
       if (!config.githubToken) {
-        console.log(chalk.yellow('⚠️  GitHub token not found in environment. Skipping GitHub data fetch.'));
+        console.log(
+          chalk.yellow('⚠️  GitHub token not found in environment. Skipping GitHub data fetch.')
+        );
         console.log(chalk.gray('   Set GITHUB_TOKEN in your .env file to fetch GitHub data.'));
       } else {
         const githubSpinner = ora(`Fetching GitHub data for @${answers.githubUsername}...`).start();
@@ -136,7 +138,9 @@ export async function initCommand(): Promise<void> {
 
           if (items.length === 0) {
             githubSpinner.warn('No GitHub data found');
-            console.log(chalk.gray('   This might be a private account or the username is incorrect.'));
+            console.log(
+              chalk.gray('   This might be a private account or the username is incorrect.')
+            );
           } else {
             for (const item of items) {
               await sourceItemsRepo.upsert({
@@ -168,7 +172,9 @@ export async function initCommand(): Promise<void> {
     // Twitter (via RSS)
     if (answers.enableTwitter) {
       if (!config.twitterRssUrl) {
-        console.log(chalk.yellow('⚠️  Twitter RSS URL not found in environment. Skipping Twitter data fetch.'));
+        console.log(
+          chalk.yellow('⚠️  Twitter RSS URL not found in environment. Skipping Twitter data fetch.')
+        );
         console.log(chalk.gray('   Set TWITTER_RSS_URL in your .env file to fetch Twitter data.'));
       } else {
         const twitterSpinner = ora('Fetching Twitter data via RSS...').start();
@@ -192,7 +198,9 @@ export async function initCommand(): Promise<void> {
           twitterSpinner.fail('Failed to fetch Twitter data');
           if (error instanceof Error) {
             if (error.message.includes('ENOTFOUND') || error.message.includes('timeout')) {
-              console.error(chalk.red('   Network error. Please check your internet connection and RSS URL.'));
+              console.error(
+                chalk.red('   Network error. Please check your internet connection and RSS URL.')
+              );
             } else if (error.message.includes('Invalid XML')) {
               console.error(chalk.red('   Invalid RSS feed. Please check TWITTER_RSS_URL.'));
             } else {
@@ -228,7 +236,9 @@ export async function initCommand(): Promise<void> {
         rssSpinner.fail('Failed to fetch RSS data');
         if (error instanceof Error) {
           if (error.message.includes('ENOTFOUND') || error.message.includes('timeout')) {
-            console.error(chalk.red('   Network error. Please check your internet connection and RSS URL.'));
+            console.error(
+              chalk.red('   Network error. Please check your internet connection and RSS URL.')
+            );
           } else if (error.message.includes('Invalid XML')) {
             console.error(chalk.red('   Invalid RSS feed. Please check the URL.'));
           } else {
@@ -326,12 +336,24 @@ export async function initCommand(): Promise<void> {
 
     // Final summary
     console.log(chalk.bold.green('\n✓ YouAgent initialized successfully!\n'));
-    
+
     // Show summary of what was fetched
-    const githubCount = await sourceItemsRepo.findBySource('github').then(items => items.length).catch(() => 0);
-    const twitterCount = await sourceItemsRepo.findBySource('twitter').then(items => items.length).catch(() => 0);
-    const rssCount = await sourceItemsRepo.findBySource('rss').then(items => items.length).catch(() => 0);
-    const resumeCount = await sourceItemsRepo.findBySource('resume').then(items => items.length).catch(() => 0);
+    const githubCount = await sourceItemsRepo
+      .findBySource('github')
+      .then((items) => items.length)
+      .catch(() => 0);
+    const twitterCount = await sourceItemsRepo
+      .findBySource('twitter')
+      .then((items) => items.length)
+      .catch(() => 0);
+    const rssCount = await sourceItemsRepo
+      .findBySource('rss')
+      .then((items) => items.length)
+      .catch(() => 0);
+    const resumeCount = await sourceItemsRepo
+      .findBySource('resume')
+      .then((items) => items.length)
+      .catch(() => 0);
     const totalItems = githubCount + twitterCount + rssCount + resumeCount;
 
     console.log(chalk.bold('📊 Data Summary:'));
@@ -339,7 +361,7 @@ export async function initCommand(): Promise<void> {
     if (twitterCount > 0) console.log(`   • Twitter: ${twitterCount} tweets`);
     if (rssCount > 0) console.log(`   • RSS/Blog: ${rssCount} articles`);
     if (resumeCount > 0) console.log(`   • Resume: ${resumeCount} sections`);
-    
+
     if (totalItems === 0) {
       console.log(chalk.yellow('   ⚠️  No data was fetched. Check your configuration.'));
     } else {
