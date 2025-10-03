@@ -27,7 +27,7 @@ const configSchema = z.object({
 
   // Gemini API
   geminiApiKey: z.string().min(1, 'GEMINI_API_KEY is required'),
-  geminiModel: z.string().default('gemini-1.5-pro'),
+  geminiModel: z.string().default('gemini-pro'),
 
   // Connectors (optional for init, required when used)
   githubToken: z.string().optional(),

@@ -36,10 +36,10 @@ export class GeminiClient {
   private model: GenerativeModel;
   private embeddingModel: GenerativeModel;
 
-  constructor(apiKey: string, modelName = 'gemini-1.5-pro') {
+  constructor(apiKey: string, modelName = 'gemini-pro') {
     this.client = new GoogleGenerativeAI(apiKey);
     this.model = this.client.getGenerativeModel({ model: modelName });
-    this.embeddingModel = this.client.getGenerativeModel({ model: 'text-embedding-004' });
+    this.embeddingModel = this.client.getGenerativeModel({ model: 'embedding-001' });
   }
 
   /**
