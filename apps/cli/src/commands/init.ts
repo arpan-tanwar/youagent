@@ -121,68 +121,165 @@ export async function initCommand(): Promise<void> {
     console.log(chalk.bold('\nFetching your data...\n'));
 
     // GitHub
-    if (config.githubToken && answers.githubUsername) {
-      const githubSpinner = ora('Fetching GitHub data...').start();
-      try {
-        const github = new GitHubConnector({
-          token: config.githubToken,
-          username: answers.githubUsername,
-        });
-        const items = await github.fetch();
-
-        for (const item of items) {
-          await sourceItemsRepo.upsert({
-            ...item,
-            metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+    if (answers.githubUsername) {
+      if (!config.githubToken) {
+        console.log(chalk.yellow('⚠️  GitHub token not found in environment. Skipping GitHub data fetch.'));
+        console.log(chalk.gray('   Set GITHUB_TOKEN in your .env file to fetch GitHub data.'));
+      } else {
+        const githubSpinner = ora(`Fetching GitHub data for @${answers.githubUsername}...`).start();
+        try {
+          const github = new GitHubConnector({
+            token: config.githubToken,
+            username: answers.githubUsername,
           });
-        }
+          const items = await github.fetch();
 
-        githubSpinner.succeed(`Fetched ${items.length} items from GitHub`);
-      } catch (error) {
-        githubSpinner.fail('Failed to fetch GitHub data');
-        console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+          if (items.length === 0) {
+            githubSpinner.warn('No GitHub data found');
+            console.log(chalk.gray('   This might be a private account or the username is incorrect.'));
+          } else {
+            for (const item of items) {
+              await sourceItemsRepo.upsert({
+                ...item,
+                metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+              });
+            }
+            githubSpinner.succeed(`Fetched ${items.length} items from GitHub`);
+          }
+        } catch (error) {
+          githubSpinner.fail('Failed to fetch GitHub data');
+          if (error instanceof Error) {
+            if (error.message.includes('404')) {
+              console.error(chalk.red('   User not found. Please check the username.'));
+            } else if (error.message.includes('401')) {
+              console.error(chalk.red('   Invalid GitHub token. Please check GITHUB_TOKEN.'));
+            } else if (error.message.includes('403')) {
+              console.error(chalk.red('   GitHub API rate limit exceeded. Try again later.'));
+            } else {
+              console.error(chalk.red(`   ${error.message}`));
+            }
+          } else {
+            console.error(chalk.red(`   ${String(error)}`));
+          }
+        }
       }
     }
 
-    // RSS
+    // Twitter (via RSS)
+    if (answers.enableTwitter) {
+      if (!config.twitterRssUrl) {
+        console.log(chalk.yellow('⚠️  Twitter RSS URL not found in environment. Skipping Twitter data fetch.'));
+        console.log(chalk.gray('   Set TWITTER_RSS_URL in your .env file to fetch Twitter data.'));
+      } else {
+        const twitterSpinner = ora('Fetching Twitter data via RSS...').start();
+        try {
+          const twitter = new TwitterConnector({ rssUrl: config.twitterRssUrl });
+          const items = await twitter.fetch();
+
+          if (items.length === 0) {
+            twitterSpinner.warn('No Twitter data found');
+            console.log(chalk.gray('   The RSS feed might be empty or invalid.'));
+          } else {
+            for (const item of items) {
+              await sourceItemsRepo.upsert({
+                ...item,
+                metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+              });
+            }
+            twitterSpinner.succeed(`Fetched ${items.length} tweets from Twitter`);
+          }
+        } catch (error) {
+          twitterSpinner.fail('Failed to fetch Twitter data');
+          if (error instanceof Error) {
+            if (error.message.includes('ENOTFOUND') || error.message.includes('timeout')) {
+              console.error(chalk.red('   Network error. Please check your internet connection and RSS URL.'));
+            } else if (error.message.includes('Invalid XML')) {
+              console.error(chalk.red('   Invalid RSS feed. Please check TWITTER_RSS_URL.'));
+            } else {
+              console.error(chalk.red(`   ${error.message}`));
+            }
+          } else {
+            console.error(chalk.red(`   ${String(error)}`));
+          }
+        }
+      }
+    }
+
+    // RSS/Blog
     if (answers.enableRss && answers.rssUrl) {
-      const rssSpinner = ora('Fetching RSS data...').start();
+      const rssSpinner = ora(`Fetching RSS data from ${answers.rssUrl}...`).start();
       try {
         const rss = new RSSConnector({ url: answers.rssUrl });
         const items = await rss.fetch();
 
-        for (const item of items) {
-          await sourceItemsRepo.upsert({
-            ...item,
-            metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
-          });
+        if (items.length === 0) {
+          rssSpinner.warn('No RSS data found');
+          console.log(chalk.gray('   The RSS feed might be empty or invalid.'));
+        } else {
+          for (const item of items) {
+            await sourceItemsRepo.upsert({
+              ...item,
+              metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+            });
+          }
+          rssSpinner.succeed(`Fetched ${items.length} items from RSS`);
         }
-
-        rssSpinner.succeed(`Fetched ${items.length} items from RSS`);
       } catch (error) {
         rssSpinner.fail('Failed to fetch RSS data');
-        console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+        if (error instanceof Error) {
+          if (error.message.includes('ENOTFOUND') || error.message.includes('timeout')) {
+            console.error(chalk.red('   Network error. Please check your internet connection and RSS URL.'));
+          } else if (error.message.includes('Invalid XML')) {
+            console.error(chalk.red('   Invalid RSS feed. Please check the URL.'));
+          } else {
+            console.error(chalk.red(`   ${error.message}`));
+          }
+        } else {
+          console.error(chalk.red(`   ${String(error)}`));
+        }
       }
     }
 
     // Resume
     if (answers.enableResume && answers.resumePath) {
-      const resumeSpinner = ora('Parsing resume...').start();
+      const resumeSpinner = ora(`Parsing resume from ${answers.resumePath}...`).start();
       try {
+        // Check if file exists
+        const fs = await import('fs/promises');
+        try {
+          await fs.access(answers.resumePath);
+        } catch {
+          throw new Error(`File not found: ${answers.resumePath}`);
+        }
+
         const resume = new ResumeConnector({ pdfPath: answers.resumePath });
         const items = await resume.fetch();
 
-        for (const item of items) {
-          await sourceItemsRepo.upsert({
-            ...item,
-            metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
-          });
+        if (items.length === 0) {
+          resumeSpinner.warn('No content found in resume');
+          console.log(chalk.gray('   The PDF might be empty or corrupted.'));
+        } else {
+          for (const item of items) {
+            await sourceItemsRepo.upsert({
+              ...item,
+              metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+            });
+          }
+          resumeSpinner.succeed(`Parsed resume (${items.length} sections)`);
         }
-
-        resumeSpinner.succeed(`Parsed resume (${items.length} sections)`);
       } catch (error) {
         resumeSpinner.fail('Failed to parse resume');
-        console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+        if (error instanceof Error) {
+          if (error.message.includes('File not found')) {
+            console.error(chalk.red(`   ${error.message}`));
+          } else if (error.message.includes('pdf-parse')) {
+            console.error(chalk.red('   PDF parsing failed. Make sure the file is a valid PDF.'));
+          } else {
+            console.error(chalk.red(`   ${error.message}`));
+          }
+        } else {
+          console.error(chalk.red(`   ${String(error)}`));
+        }
       }
     }
 
@@ -192,11 +289,12 @@ export async function initCommand(): Promise<void> {
 
     try {
       const gemini = initGemini(config.geminiApiKey, config.geminiModel);
-      const allItems = await sourceItemsRepo.findBySource('github');
+      const githubItems = await sourceItemsRepo.findBySource('github');
+      const twitterItems = await sourceItemsRepo.findBySource('twitter');
       const rssItems = await sourceItemsRepo.findBySource('rss');
       const resumeItems = await sourceItemsRepo.findBySource('resume');
 
-      const items = [...allItems, ...rssItems, ...resumeItems];
+      const items = [...githubItems, ...twitterItems, ...rssItems, ...resumeItems];
 
       if (items.length > 0) {
         // Batch embeddings (process in chunks of 10)
@@ -226,8 +324,32 @@ export async function initCommand(): Promise<void> {
       console.error(chalk.red(error instanceof Error ? error.message : String(error)));
     }
 
+    // Final summary
     console.log(chalk.bold.green('\n✓ YouAgent initialized successfully!\n'));
-    console.log('Run ' + chalk.cyan('youagent chat') + ' to start chatting.\n');
+    
+    // Show summary of what was fetched
+    const githubCount = await sourceItemsRepo.findBySource('github').then(items => items.length).catch(() => 0);
+    const twitterCount = await sourceItemsRepo.findBySource('twitter').then(items => items.length).catch(() => 0);
+    const rssCount = await sourceItemsRepo.findBySource('rss').then(items => items.length).catch(() => 0);
+    const resumeCount = await sourceItemsRepo.findBySource('resume').then(items => items.length).catch(() => 0);
+    const totalItems = githubCount + twitterCount + rssCount + resumeCount;
+
+    console.log(chalk.bold('📊 Data Summary:'));
+    if (githubCount > 0) console.log(`   • GitHub: ${githubCount} items`);
+    if (twitterCount > 0) console.log(`   • Twitter: ${twitterCount} tweets`);
+    if (rssCount > 0) console.log(`   • RSS/Blog: ${rssCount} articles`);
+    if (resumeCount > 0) console.log(`   • Resume: ${resumeCount} sections`);
+    
+    if (totalItems === 0) {
+      console.log(chalk.yellow('   ⚠️  No data was fetched. Check your configuration.'));
+    } else {
+      console.log(chalk.green(`   ✅ Total: ${totalItems} items ready for chat`));
+    }
+
+    console.log('\n🚀 Next steps:');
+    console.log('   • Run ' + chalk.cyan('youagent chat') + ' to start chatting');
+    console.log('   • Run ' + chalk.cyan('youagent doctor') + ' to check system health');
+    console.log('   • Run ' + chalk.cyan('youagent refresh') + ' to update your data\n');
   } catch (error) {
     console.error(chalk.red('\n✗ Initialization failed:'), error);
     process.exit(1);
