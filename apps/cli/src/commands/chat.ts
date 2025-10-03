@@ -1,5 +1,6 @@
 import prompts from 'prompts';
 import chalk from 'chalk';
+import { createInterface } from 'readline';
 import { getConfig } from '@youagent/config';
 import { initDb, sourceItemsRepo } from '@youagent/data';
 import { createIndex } from '@youagent/index';
@@ -38,41 +39,56 @@ export async function chatCommand(options: ChatOptions): Promise<void> {
     console.log(chalk.bold.blue('\n🤖 YouAgent Chat\n'));
     console.log('Type your questions. Press Ctrl+C to exit.\n');
 
-    // Handle Ctrl+C gracefully
-    process.on('SIGINT', () => {
-      console.log(chalk.blue('\n\nGoodbye!\n'));
-      process.exit(0);
+    // Create readline interface for better Ctrl+C handling
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
     });
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        const response = await prompts({
-          type: 'text',
-          name: 'message',
-          message: chalk.cyan('You:'),
+    // Handle Ctrl+C gracefully
+    const handleExit = () => {
+      console.log(chalk.blue('\n\nGoodbye!\n'));
+      rl.close();
+      process.exit(0);
+    };
+
+    process.on('SIGINT', handleExit);
+    process.on('SIGTERM', handleExit);
+
+    // Ask for user input
+    const askQuestion = (): Promise<void> => {
+      return new Promise((resolve) => {
+        rl.question(chalk.cyan('You: '), async (message) => {
+          const trimmedMessage = message.trim();
+
+          if (!trimmedMessage) {
+            resolve();
+            return;
+          }
+
+          if (trimmedMessage.toLowerCase() === 'exit' || 
+              trimmedMessage.toLowerCase() === 'quit' || 
+              trimmedMessage.toLowerCase() === 'bye') {
+            console.log(chalk.blue('\nGoodbye!\n'));
+            rl.close();
+            process.exit(0);
+          }
+
+          await processSingleMessage(trimmedMessage, gemini, vectorIndex, false);
+          resolve();
         });
+      });
+    };
 
-        if (!response.message || response.message.trim() === '') {
-          continue;
-        }
-
-        const message = response.message.trim();
-
-        if (message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
-          console.log(chalk.blue('\nGoodbye!\n'));
-          break;
-        }
-
-        await processSingleMessage(message, gemini, vectorIndex, false);
-      } catch (error) {
-        // Handle prompts cancellation (Ctrl+C)
-        if (error instanceof Error && error.message.includes('canceled')) {
-          console.log(chalk.blue('\n\nGoodbye!\n'));
-          break;
-        }
-        throw error;
+    // Main chat loop
+    try {
+      while (true) {
+        await askQuestion();
       }
+    } catch (error) {
+      console.log(chalk.blue('\n\nGoodbye!\n'));
+      rl.close();
+      process.exit(0);
     }
   } catch (error) {
     console.error(chalk.red('\n✗ Chat failed:'), error);
