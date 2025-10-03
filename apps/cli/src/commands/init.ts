@@ -49,13 +49,16 @@ export async function initCommand(): Promise<void> {
     // Collect user preferences
     console.log(chalk.bold('\nData Sources Configuration:\n'));
 
-    const answers = await prompts([
-      {
-        type: 'text',
-        name: 'githubUsername',
-        message: 'GitHub username:',
-        validate: (value: string) => value.length > 0 || 'Required',
-      },
+    // First, ask for GitHub username (required)
+    const githubAnswer = await prompts({
+      type: 'text',
+      name: 'githubUsername',
+      message: 'GitHub username:',
+      validate: (value: string) => value.length > 0 || 'Required',
+    });
+
+    // Ask for optional integrations
+    const integrationAnswers = await prompts([
       {
         type: 'confirm',
         name: 'enableTwitter',
@@ -69,28 +72,44 @@ export async function initCommand(): Promise<void> {
         initial: false,
       },
       {
-        type: 'text',
-        name: 'rssUrl',
-        message: 'Blog RSS URL:',
-        initial: '',
-        validate: (value: string, prev: Record<string, unknown> | undefined) =>
-          !prev?.enableRss || value.length > 0 || 'Required when RSS is enabled',
-      },
-      {
         type: 'confirm',
         name: 'enableResume',
         message: 'Upload resume (PDF)?',
         initial: false,
       },
-      {
+    ]);
+
+    // Ask for RSS URL only if enabled
+    let rssUrl = '';
+    if (integrationAnswers.enableRss) {
+      const rssAnswer = await prompts({
+        type: 'text',
+        name: 'rssUrl',
+        message: 'Blog RSS URL:',
+        validate: (value: string) => value.length > 0 || 'Required when RSS is enabled',
+      });
+      rssUrl = rssAnswer.rssUrl;
+    }
+
+    // Ask for resume path only if enabled
+    let resumePath = '';
+    if (integrationAnswers.enableResume) {
+      const resumeAnswer = await prompts({
         type: 'text',
         name: 'resumePath',
         message: 'Resume PDF path:',
-        initial: '',
-        validate: (value: string, prev: Record<string, unknown> | undefined) =>
-          !prev?.enableResume || value.length > 0 || 'Required when resume is enabled',
-      },
-    ]);
+        validate: (value: string) => value.length > 0 || 'Required when resume is enabled',
+      });
+      resumePath = resumeAnswer.resumePath;
+    }
+
+    // Combine all answers
+    const answers = {
+      ...githubAnswer,
+      ...integrationAnswers,
+      rssUrl,
+      resumePath,
+    };
 
     // Grant consent
     await consentRepo.grant('github');

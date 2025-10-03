@@ -38,26 +38,41 @@ export async function chatCommand(options: ChatOptions): Promise<void> {
     console.log(chalk.bold.blue('\n🤖 YouAgent Chat\n'));
     console.log('Type your questions. Press Ctrl+C to exit.\n');
 
+    // Handle Ctrl+C gracefully
+    process.on('SIGINT', () => {
+      console.log(chalk.blue('\n\nGoodbye!\n'));
+      process.exit(0);
+    });
+
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const response = await prompts({
-        type: 'text',
-        name: 'message',
-        message: chalk.cyan('You:'),
-      });
+      try {
+        const response = await prompts({
+          type: 'text',
+          name: 'message',
+          message: chalk.cyan('You:'),
+        });
 
-      if (!response.message || response.message.trim() === '') {
-        continue;
+        if (!response.message || response.message.trim() === '') {
+          continue;
+        }
+
+        const message = response.message.trim();
+
+        if (message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
+          console.log(chalk.blue('\nGoodbye!\n'));
+          break;
+        }
+
+        await processSingleMessage(message, gemini, vectorIndex, false);
+      } catch (error) {
+        // Handle prompts cancellation (Ctrl+C)
+        if (error instanceof Error && error.message.includes('canceled')) {
+          console.log(chalk.blue('\n\nGoodbye!\n'));
+          break;
+        }
+        throw error;
       }
-
-      const message = response.message.trim();
-
-      if (message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
-        console.log(chalk.blue('\nGoodbye!\n'));
-        break;
-      }
-
-      await processSingleMessage(message, gemini, vectorIndex, false);
     }
   } catch (error) {
     console.error(chalk.red('\n✗ Chat failed:'), error);
