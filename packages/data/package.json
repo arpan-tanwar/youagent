@@ -1,0 +1,33 @@
+{
+  "name": "@youagent/data",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "db:generate": "drizzle-kit generate:sqlite",
+    "db:push": "drizzle-kit push:sqlite",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@youagent/utils": "workspace:*",
+    "drizzle-orm": "^0.29.3",
+    "better-sqlite3": "^9.3.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.11.0",
+    "drizzle-kit": "^0.20.10",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}
+

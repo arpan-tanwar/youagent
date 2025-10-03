@@ -1,0 +1,30 @@
+{
+  "name": "@youagent/agent",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./planner": "./src/planner.ts",
+    "./synthesis": "./src/synthesis.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@youagent/utils": "workspace:*",
+    "@youagent/data": "workspace:*",
+    "@youagent/index": "workspace:*",
+    "@youagent/ai": "workspace:*",
+    "@youagent/connectors": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}
+

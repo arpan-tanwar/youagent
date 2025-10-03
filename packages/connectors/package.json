@@ -1,0 +1,34 @@
+{
+  "name": "@youagent/connectors",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./github": "./src/github.ts",
+    "./rss": "./src/rss.ts",
+    "./resume": "./src/resume.ts",
+    "./twitter": "./src/twitter.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@youagent/utils": "workspace:*",
+    "zod": "^3.22.4",
+    "undici": "^6.6.0",
+    "rss-parser": "^3.13.0",
+    "pdf-parse": "^1.1.1",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/pdf-parse": "^1.1.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}
+
