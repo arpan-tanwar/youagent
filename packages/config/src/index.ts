@@ -1,10 +1,14 @@
 import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { homedir } from 'os';
+import { fileURLToPath } from 'url';
 
-// Load .env file if present
-loadDotenv();
+// Load .env file from project root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, '../../..');
+loadDotenv({ path: resolve(projectRoot, '.env') });
 
 /**
  * Configuration schema with strict validation and sensible defaults

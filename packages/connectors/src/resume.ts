@@ -1,5 +1,4 @@
 import { readFile } from 'fs/promises';
-import pdfParse from 'pdf-parse';
 import { sha256 } from '@youagent/utils/hash';
 import { now } from '@youagent/utils/date';
 import { ConnectorError } from '@youagent/utils/errors';
@@ -23,6 +22,17 @@ export class ResumeConnector {
     const fetchedAt = now();
 
     try {
+      // Dynamically import pdf-parse to avoid initialization issues
+      let pdfParse;
+      try {
+        pdfParse = (await import('pdf-parse')).default;
+      } catch (importError) {
+        throw new ConnectorError(
+          'pdf-parse is not available. Install it with: pnpm add pdf-parse',
+          { cause: importError }
+        );
+      }
+      
       const buffer = await readFile(this.options.pdfPath);
       const data = await pdfParse(buffer);
       const text = data.text;
