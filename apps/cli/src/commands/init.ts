@@ -73,8 +73,8 @@ export async function initCommand(): Promise<void> {
         name: 'rssUrl',
         message: 'Blog RSS URL:',
         initial: '',
-        validate: (value: string, prev: Record<string, unknown>) =>
-          !prev.enableRss || value.length > 0 || 'Required when RSS is enabled',
+        validate: (value: string, prev: Record<string, unknown> | undefined) =>
+          !prev?.enableRss || value.length > 0 || 'Required when RSS is enabled',
       },
       {
         type: 'confirm',
@@ -87,8 +87,8 @@ export async function initCommand(): Promise<void> {
         name: 'resumePath',
         message: 'Resume PDF path:',
         initial: '',
-        validate: (value: string, prev: Record<string, unknown>) =>
-          !prev.enableResume || value.length > 0 || 'Required when resume is enabled',
+        validate: (value: string, prev: Record<string, unknown> | undefined) =>
+          !prev?.enableResume || value.length > 0 || 'Required when resume is enabled',
       },
     ]);
 
